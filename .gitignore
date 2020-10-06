@@ -1,0 +1,7 @@
+MIPS_multicycle.xpr
+MIPS_multicycle_behav.wcfg
+/MIPS_multicycle.cache/
+/MIPS_multicycle.hw/
+/MIPS_multicycle.ip_user_files/
+/MIPS_multicycle.sim/
+/MIPS_multicycle.runs/

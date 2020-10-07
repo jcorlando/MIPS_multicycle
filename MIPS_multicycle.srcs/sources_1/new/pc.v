@@ -7,8 +7,7 @@ module pc # (  parameter WL = 32 )
     output reg [WL - 1 : 0] pc_Out
 );
     reg [WL - 1 : 0] pc;
-    always @ (*) pc = pc_In;
-    
-    initial pc_Out <= 0;
-    always @ (posedge CLK) pc_Out <= pc_In;
+    initial pc <= 512;
+    always @ (*) pc_Out <= pc;
+    always @ (posedge CLK) pc <= pc_In;
 endmodule

@@ -5,12 +5,16 @@ module top # ( parameter WL = 32 )
     
 );
     reg CLK;
+    reg RESET;
     wire MemWrite;
-    wire IorD;
     wire IRWrite;
+    wire IorD;
     wire RegWrite;
+    wire [2 : 0] ALUControl;
     wire ALUSrcA;
     wire [1 : 0] ALUSrcB;
+    wire PCWrite;
+    wire PCSrc;
     
     
     wire [WL - 1 : 0] pc_Out;
@@ -28,24 +32,25 @@ module top # ( parameter WL = 32 )
     
     
     // Control Unit
-    control_unit cont_unit( .CLK(CLK), .Op(inst_reg.opcode), .Funct(inst_reg.funct), .ALUSrcB(ALUSrcB)          // Control Unit
-                   );                      // Control Unit
+    control_unit cont_unit( .CLK(CLK), .RESET(RESET), .Op(inst_reg.opcode), .Funct(inst_reg.funct), .ALUSrcA(ALUSrcA),  // Control Unit
+                   .ALUSrcB(ALUSrcB), .IorD(IorD), .ALUControl(ALUControl), .PCSrc(PCSrc), .IRWrite(IRWrite),           // Control Unit
+                        .PCWrite(PCWrite) );                                                                            // Control Unit
     // Control Unit
     
     // program counter
-    pc pc( .CLK(CLK), .pc_In(ALUResult), .pc_Out(pc_Out) );                                                              // program counter
+    pc pc( .CLK(CLK), .EN(PCWrite), .pc_In(ALUResult), .pc_Out(pc_Out) );                                // program counter
     // program counter
     
     // program counter multiplexer
-    IorD_multiplexer IorD_multiplex(.IorD(IorD), .in0(pc_Out), .in1(ALU_reg_out), .out(Adr) );                  // program counter multiplexer
+    IorD_multiplexer IorD_multiplex(.IorD(IorD), .in0(pc_Out), .in1(ALU_reg_out), .out(Adr) );           // program counter multiplexer
     // program counter multiplexer
     
     // Data Memory
-    data_Mem data_mem( .CLK(CLK), .WE(IRWrite), .A(Adr), .RD(RD) );                                             // Data Memory
+    data_Mem data_mem( .CLK(CLK), .WE(MemWrite), .A(Adr), .RD(RD) );                                             // Data Memory
     // Data Memory
     
     // Instruction Register
-    inst_reg inst_reg( .CLK(CLK), .EN(), .instr_in(RD), .instr_out(instr_out) );                                // Instruction Register
+    inst_reg inst_reg( .CLK(CLK), .EN(IRWrite), .instr_in(RD), .instr_out(instr_out) );                       // Instruction Register
     // Instruction Register
     
     // data register
@@ -70,7 +75,7 @@ module top # ( parameter WL = 32 )
     // ALUSrcB multiplexer
     
     // ALU
-    alu alu( .A(SrcA), .B(SrcB), .ALU_Control(), .ALU_Out(ALUResult) );                                         // ALU
+    alu alu( .A(SrcA), .B(SrcB), .ALU_Control(ALUControl), .ALU_Out(ALUResult) );                               // ALU
     // ALU
     
     // ALU register

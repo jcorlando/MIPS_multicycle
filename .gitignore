@@ -1,5 +1,5 @@
 MIPS_multicycle.xpr
-MIPS_multicycle_behav.wcfg
+top_behav.wcfg
 /MIPS_multicycle.cache/
 /MIPS_multicycle.hw/
 /MIPS_multicycle.ip_user_files/

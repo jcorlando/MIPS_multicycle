@@ -11,7 +11,7 @@ module control_unit
     output reg [1 : 0] ALUSrcB,
     output reg ALUSrcA,
     output reg IRWrite,
-    output MemWrite,
+    output reg MemWrite,
     output reg PCWrite,
     output Branch,
     output reg RegWrite,
@@ -37,16 +37,28 @@ module control_unit
     always @ (current_state or Op)
     begin
         case(current_state)
-            s0_fetch: next_state = s1_decode;
-            s1_decode:
+            s0_fetch:   // S0 fetch
+            begin
+                next_state = s1_decode;
+            end
+            s1_decode:  // s1 decode
             begin
                 if(Op == 6'b100011 || Op == 6'b101011) next_state = s2_memadr;
                 else next_state = s0_fetch;
             end
-            s2_memadr: if(Op == 6'b100011 ) next_state = s3_memread;
-                       else next_state = s0_fetch;
-            s3_memread: next_state = s4_memwriteback;
-            s4_memwriteback: next_state = s0_fetch;
+            s2_memadr: // S2 
+            begin
+                if(Op == 6'b100011 ) next_state = s3_memread;
+                else next_state = s0_fetch;
+            end
+            s3_memread: // S3
+            begin
+                next_state = s4_memwriteback;
+            end
+            s4_memwriteback: // S4
+            begin
+                next_state = s0_fetch;
+            end
             default next_state = s0_fetch;
         endcase
     end
@@ -66,30 +78,53 @@ module control_unit
                     PCSrc = 0;
                     IRWrite = 1;
                     PCWrite = 1;
+                    RegWrite = 0;
+                    MemWrite = 0;
                 end
-            
             s1_decode:
             begin
+                
                 IRWrite = 0;
                 PCWrite = 0;
+                RegWrite = 0;
+                MemWrite = 0;
             end
             
             s2_memadr:
             begin
                 ALUSrcA = 1;
                 ALUControl = 3'b000;
-                ALUSrcB = 10;
+                ALUSrcB = 2'b10;
+                IRWrite = 0;
+                PCWrite = 0;
+                RegWrite = 0;
+                MemWrite = 0;
             end
-            s3_memread: IorD = 1;
+            s3_memread:
+            begin
+                IorD = 1;
+                IRWrite = 0;
+                PCWrite = 0;
+                RegWrite = 0;
+                MemWrite = 0;
+            end
             s4_memwriteback:
             begin
                 RegDst = 0;
                 MemtoReg = 1;
                 RegWrite = 1;
+                IRWrite = 0;
+                PCWrite = 0;
+                MemWrite = 0;
             end
         endcase
     end
-
+    
+    
+    
+    
+    
+    
     
     
     

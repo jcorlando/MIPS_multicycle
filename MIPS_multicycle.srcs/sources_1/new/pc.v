@@ -9,5 +9,8 @@ module pc # (  parameter WL = 32 )
     reg [WL - 1 : 0] pc;
     initial pc <= 512;
     always @ (*) pc_Out <= pc;
-    always @ (posedge CLK) pc <= pc_In;
+    always @ (posedge CLK)
+    begin
+        if(EN) pc <= pc_In;
+    end
 endmodule

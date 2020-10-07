@@ -21,6 +21,7 @@ module top # ( parameter WL = 32 )
     wire [WL - 1 : 0] RD;
     wire [WL - 1 : 0] instr_out;
     wire [WL - 1 : 0] RD1;
+    wire [WL - 1 : 0] RD2;
     wire [WL - 1 : 0] A;
     wire signed [WL - 1 : 0] SImm = inst_reg.SImm;
     wire signed [WL - 1 : 0] ALUResult;
@@ -34,7 +35,7 @@ module top # ( parameter WL = 32 )
     // Control Unit
     control_unit cont_unit( .CLK(CLK), .RESET(RESET), .Op(inst_reg.opcode), .Funct(inst_reg.funct), .ALUSrcA(ALUSrcA),  // Control Unit
                    .ALUSrcB(ALUSrcB), .IorD(IorD), .ALUControl(ALUControl), .PCSrc(PCSrc), .IRWrite(IRWrite),           // Control Unit
-                        .PCWrite(PCWrite) );                                                                            // Control Unit
+                        .PCWrite(PCWrite), .RegWrite(RegWrite) );                                                       // Control Unit
     // Control Unit
     
     // program counter
@@ -58,12 +59,12 @@ module top # ( parameter WL = 32 )
     // data register
     
     // Register File
-    reg_File reg_file( .CLK(CLK), .WE3(RegWrite), .A1(instr_out), .WD3(Data),                                   // Register File
-                    .A3(inst_reg.rt), .RD1(RD1) );                                                              // Register File
+    reg_File reg_file( .CLK(CLK), .WE3(RegWrite), .A1(inst_reg.rs), .A2(inst_reg.rt), .WD3(Data),               // Register File
+                    .A3(inst_reg.rt), .RD1(RD1), .RD2(RD2) );                                                   // Register File
     // Register File
     
     // Register File register
-    reg_file_register  reg_file_reg( .CLK(CLK), .RD1_in(RD1), .A(A) );                                          // Register File register
+    reg_file_register  reg_file_reg( .CLK(CLK), .RD1_in(RD1), .RD2_in(RD2), .A(A) );                            // Register File register
     // Register File register
     
     // ALUSrcA multiplexer

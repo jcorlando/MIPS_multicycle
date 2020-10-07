@@ -18,7 +18,7 @@ module control_unit
     output reg [2 : 0] ALUControl
 );
     localparam s0_fetch = 3'b000, s1_decode = 3'b001, s2_memadr = 3'b010,
-                s3_memread = 3'b011, s4_memwriteback = 3'b100;
+                s3_memread = 3'b011, s4_memwriteback = 3'b100, s5_memwrite = 3'b101;
     
     reg [2 : 0] current_state, next_state;
     
@@ -49,6 +49,7 @@ module control_unit
             s2_memadr: // S2 
             begin
                 if(Op == 6'b100011 ) next_state = s3_memread;
+                else if(Op == 6'b101011 ) next_state = s5_memwrite;
                 else next_state = s0_fetch;
             end
             s3_memread: // S3
@@ -56,6 +57,10 @@ module control_unit
                 next_state = s4_memwriteback;
             end
             s4_memwriteback: // S4
+            begin
+                next_state = s0_fetch;
+            end
+            s5_memwrite: // S5
             begin
                 next_state = s0_fetch;
             end
@@ -70,17 +75,17 @@ module control_unit
     begin
         case(current_state)
             s0_fetch:
-                begin
-                    IorD = 0;
-                    ALUSrcA = 0;
-                    ALUSrcB = 2'b01;
-                    ALUControl = 3'b000;
-                    PCSrc = 0;
-                    IRWrite = 1;
-                    PCWrite = 1;
-                    RegWrite = 0;
-                    MemWrite = 0;
-                end
+            begin
+                IorD = 0;
+                ALUSrcA = 0;
+                ALUSrcB = 2'b01;
+                ALUControl = 3'b000;
+                PCSrc = 0;
+                IRWrite = 1;
+                PCWrite = 1;
+                RegWrite = 0;
+                MemWrite = 0;
+            end
             s1_decode:
             begin
                 
@@ -115,6 +120,23 @@ module control_unit
                 RegWrite = 1;
                 IRWrite = 0;
                 PCWrite = 0;
+                MemWrite = 0;
+            end
+            s5_memwrite:
+            begin
+                IorD = 1;
+                MemWrite = 1;
+            end
+            default
+            begin
+                IorD = 0;
+                ALUSrcA = 0;
+                ALUSrcB = 2'b01;
+                ALUControl = 3'b000;
+                PCSrc = 0;
+                IRWrite = 1;
+                PCWrite = 1;
+                RegWrite = 0;
                 MemWrite = 0;
             end
         endcase

@@ -6,6 +6,7 @@ module top # ( parameter WL = 32 )
 );
     reg CLK;
     reg RESET;
+    reg [4 : 0] shamt;
     wire MemWrite;
     wire IRWrite;
     wire IorD;
@@ -15,6 +16,8 @@ module top # ( parameter WL = 32 )
     wire [1 : 0] ALUSrcB;
     wire PCWrite;
     wire PCSrc;
+    wire RegDst;
+    wire MemtoReg;
     
     
     wire [WL - 1 : 0] pc_Out;
@@ -31,12 +34,16 @@ module top # ( parameter WL = 32 )
     wire [WL - 1 : 0] Data;
     wire [WL - 1 : 0] SrcA;
     wire [WL - 1 : 0] SrcB;
+    wire [4 : 0] A3;
+    wire [WL - 1 : 0] WD3;
+    
     
     
     // Control Unit
     control_unit cont_unit( .CLK(CLK), .RESET(RESET), .Op(inst_reg.opcode), .Funct(inst_reg.funct), .ALUSrcA(ALUSrcA),  // Control Unit
                    .ALUSrcB(ALUSrcB), .IorD(IorD), .ALUControl(ALUControl), .PCSrc(PCSrc), .IRWrite(IRWrite),           // Control Unit
-                        .PCWrite(PCWrite), .RegWrite(RegWrite), .MemWrite(MemWrite) );                                  // Control Unit
+                        .PCWrite(PCWrite), .RegWrite(RegWrite), .MemWrite(MemWrite), .RegDst(RegDst),                   // Control Unit
+                               .MemtoReg(MemtoReg) );                                                                   // Control Unit
     // Control Unit
     
     // program counter
@@ -52,16 +59,24 @@ module top # ( parameter WL = 32 )
     // Data Memory
     
     // Instruction Register
-    inst_reg inst_reg( .CLK(CLK), .EN(IRWrite), .instr_in(RD), .instr_out(instr_out) );                  // Instruction Register
+    inst_reg inst_reg( .CLK(CLK), .EN(IRWrite), .instr_in(RD), .instr_out(instr_out) );                     // Instruction Register
     // Instruction Register
     
     // data register
-    data_register data_register( .CLK(CLK), .RD(RD), .Data(Data) );                                       // data register
+    data_register data_register( .CLK(CLK), .RD(RD), .Data(Data) );                                         // data register
     // data register
     
+    // RegDst Mux
+    regdst_mux regdst_mux( .RegDst(RegDst), .rt(inst_reg.rt), .rd(inst_reg.rd), .A3(A3) );                  // RegDst Mux
+    // RegDst Mux
+    
+    // MemtoReg mux
+    memtoreg_mux memtoreg_mux(.MemtoReg(MemtoReg), .ALU_reg_out(ALU_reg_out), .Data(Data), .WD3(WD3) );     // MemtoReg mux
+    // MemtoReg mux
+    
     // Register File
-    reg_File reg_file( .CLK(CLK), .WE3(RegWrite), .A1(inst_reg.rs), .A2(inst_reg.rt), .WD3(Data),          // Register File
-                    .A3(inst_reg.rt), .RD1(RD1), .RD2(RD2) );                                              // Register File
+    reg_File reg_file( .CLK(CLK), .WE3(RegWrite), .A1(inst_reg.rs), .A2(inst_reg.rt), .WD3(WD3),          // Register File
+                    .A3(A3), .RD1(RD1), .RD2(RD2) );                                                        // Register File
     // Register File
     
     // Register File register
@@ -73,11 +88,11 @@ module top # ( parameter WL = 32 )
     // ALUSrcA multiplexer
     
     // ALUSrcB multiplexer
-    ALUSrcB_multiplexer ALUSrcB_multiplexer( .ALUSrcB(ALUSrcB), .A(), .SignImm(SImm), .D(), .SrcB(SrcB) );  // ALUSrcB multiplexer
+    ALUSrcB_multiplexer ALUSrcB_multiplexer( .ALUSrcB(ALUSrcB), .B(B), .SignImm(SImm), .D(), .SrcB(SrcB) );  // ALUSrcB multiplexer
     // ALUSrcB multiplexer
     
     // ALU
-    alu alu( .A(SrcA), .B(SrcB), .ALU_Control(ALUControl), .ALU_Out(ALUResult) );                           // ALU
+    alu alu( .shamt(shamt), .A(SrcA), .B(SrcB), .ALU_Control(ALUControl), .ALU_Out(ALUResult) );                           // ALU
     // ALU
     
     // ALU register

@@ -17,8 +17,9 @@ module control_unit
     output reg RegWrite,
     output reg [2 : 0] ALUControl
 );
-    localparam s0_fetch = 3'b000, s1_decode = 3'b001, s2_memadr = 3'b010,
-                s3_memread = 3'b011, s4_memwriteback = 3'b100, s5_memwrite = 3'b101;
+    localparam s0_fetch = 4'b0000, s1_decode = 4'b0001, s2_memadr = 4'b0010,
+                 s3_memread = 4'b0011, s4_memwriteback = 4'b0100, s5_memwrite = 4'b0101,
+                  s6_execute = 4'b0110,   s7_aluwriteback = 4'b0111;
     
     reg [2 : 0] current_state, next_state;
     
@@ -44,6 +45,7 @@ module control_unit
             s1_decode:  // s1 decode
             begin
                 if(Op == 6'b100011 || Op == 6'b101011) next_state = s2_memadr;
+                else if(Op == 6'b000000) next_state = s6_execute;
                 else next_state = s0_fetch;
             end
             s2_memadr: // S2 
@@ -64,6 +66,14 @@ module control_unit
             begin
                 next_state = s0_fetch;
             end
+            s6_execute: // S6
+            begin
+                next_state = s7_aluwriteback;
+            end
+            s7_aluwriteback: // S7
+            begin
+                next_state = s0_fetch;
+            end
             default next_state = s0_fetch;
         endcase
     end
@@ -76,6 +86,8 @@ module control_unit
         case(current_state)
             s0_fetch:
             begin
+                MemtoReg = 0;
+                RegDst = 0;
                 IorD = 0;
                 ALUSrcA = 0;
                 ALUSrcB = 2'b01;
@@ -88,7 +100,8 @@ module control_unit
             end
             s1_decode:
             begin
-                
+                MemtoReg = 0;
+                RegDst = 0;
                 IRWrite = 0;
                 PCWrite = 0;
                 RegWrite = 0;
@@ -97,6 +110,8 @@ module control_unit
             
             s2_memadr:
             begin
+                MemtoReg = 0;
+                RegDst = 0;
                 ALUSrcA = 1;
                 ALUControl = 3'b000;
                 ALUSrcB = 2'b10;
@@ -107,6 +122,8 @@ module control_unit
             end
             s3_memread:
             begin
+                MemtoReg = 0;
+                RegDst = 0;
                 IorD = 1;
                 IRWrite = 0;
                 PCWrite = 0;
@@ -124,11 +141,44 @@ module control_unit
             end
             s5_memwrite:
             begin
+                MemtoReg = 0;
+                RegDst = 0;
                 IorD = 1;
                 MemWrite = 1;
             end
+            s6_execute:
+            begin
+                MemtoReg = 0;
+                RegDst = 0;
+                ALUSrcA = 1;
+                case(Funct)
+                    32: ALUControl = 3'b000;
+                    34: ALUControl = 3'b001;
+                    0:
+                    begin
+                        top.shamt = top.inst_reg.shamt;
+                        ALUControl = 3'b010;
+                    end
+                endcase
+                ALUSrcB = 2'b00;
+                IRWrite = 0;
+                PCWrite = 0;
+                RegWrite = 0;
+                MemWrite = 0;
+            end
+            s7_aluwriteback:
+            begin
+                MemtoReg = 0;
+                RegDst = 1;
+                IRWrite = 0;
+                PCWrite = 0;
+                RegWrite = 1;
+                MemWrite = 0;
+            end
             default
             begin
+                MemtoReg = 0;
+                RegDst = 0;
                 IorD = 0;
                 ALUSrcA = 0;
                 ALUSrcB = 2'b01;

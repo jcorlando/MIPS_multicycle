@@ -9,7 +9,7 @@ module testbench_MIPS_multicycle;
     // Instantiate DUT
     top # ( .WL(WL) ) DUT(  );                          // Clock
     // Clock generation
-    always #6 DUT.CLK <= ~DUT.CLK;
+    always #2 DUT.CLK <= ~DUT.CLK;
     initial
     begin
         DUT.CLK <= 0;                                   // Clock

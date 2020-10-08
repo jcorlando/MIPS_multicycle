@@ -7,7 +7,7 @@ module control_unit
     output reg MemtoReg,
     output reg RegDst,
     output reg IorD,
-    output reg PCSrc,
+    output reg [1 : 0] PCSrc,
     output reg [1 : 0] ALUSrcB,
     output reg ALUSrcA,
     output reg IRWrite,
@@ -19,8 +19,8 @@ module control_unit
 );
     localparam s0_fetch = 4'b0000, s1_decode = 4'b0001, s2_memadr = 4'b0010,
                  s3_memread = 4'b0011, s4_memwriteback = 4'b0100, s5_memwrite = 4'b0101,
-                  s6_execute = 4'b0110,   s7_aluwriteback = 4'b0111, s9_addiexecute = 4'b1001,
-                      s10_addiwriteback = 4'b1010;
+                  s6_execute = 4'b0110,   s7_aluwriteback = 4'b0111, s8_branch = 4'b1000,
+                    s9_addiexecute = 4'b1001, s10_addiwriteback = 4'b1010, s11_jump = 4'b1011;
     
     reg [3 : 0] current_state, next_state;
     
@@ -48,6 +48,8 @@ module control_unit
                 if(Op == 6'b100011 || Op == 6'b101011) next_state = s2_memadr;
                 else if(Op == 6'b000000) next_state = s6_execute;
                 else if(Op == 6'b001000) next_state = s9_addiexecute;
+                else if(Op == 6'b000100) next_state = s8_branch;
+                else if(Op == 6'b000010) next_state = s11_jump;
                 else next_state = s0_fetch;
             end
             s2_memadr: // S2 
@@ -76,11 +78,19 @@ module control_unit
             begin
                 next_state = s0_fetch;
             end
+            s8_branch:      // S8
+            begin
+                next_state = s0_fetch;
+            end
             s9_addiexecute: // s9
             begin
                 next_state = s10_addiwriteback;
             end
             s10_addiwriteback: // s10
+            begin
+                next_state = s0_fetch;
+            end
+            s11_jump: // s11
             begin
                 next_state = s0_fetch;
             end
@@ -102,11 +112,12 @@ module control_unit
                 ALUSrcA = 0;
                 ALUSrcB = 2'b01;
                 ALUControl = 3'b000;
-                PCSrc = 0;
+                PCSrc = 2'b00;
                 IRWrite = 1;
                 PCWrite = 1;
                 RegWrite = 0;
                 MemWrite = 0;
+                Branch = 0;
             end
             s1_decode:
             begin
@@ -190,8 +201,17 @@ module control_unit
                 RegWrite = 1;
                 MemWrite = 0;
             end
+            s8_branch:
+            begin
+                ALUSrcA = 1;
+                ALUSrcB = 2'b00;
+                ALUControl = 3'b001;
+                PCSrc = 2'b01;
+                Branch = 1;
+            end
             s9_addiexecute:
             begin
+                
                 MemtoReg = 0;
                 RegDst = 0;
                 ALUSrcA = 1;
@@ -204,12 +224,19 @@ module control_unit
             end
             s10_addiwriteback:
             begin
+                
                 MemtoReg = 0;
                 RegDst = 0;
                 IRWrite = 0;
                 PCWrite = 0;
                 RegWrite = 1;
                 MemWrite = 0;
+            end
+            s11_jump: 
+            begin
+                
+                PCSrc = 2'b10;
+                PCWrite = 1;
             end
             default
             begin
@@ -219,7 +246,7 @@ module control_unit
                 ALUSrcA = 0;
                 ALUSrcB = 2'b01;
                 ALUControl = 3'b000;
-                PCSrc = 0;
+                PCSrc = 2'b00;
                 IRWrite = 1;
                 PCWrite = 1;
                 RegWrite = 0;

@@ -15,9 +15,10 @@ module top # ( parameter WL = 32 )
     wire ALUSrcA;
     wire [1 : 0] ALUSrcB;
     wire PCWrite;
-    wire PCSrc;
+    wire [1 : 0] PCSrc;
     wire RegDst;
     wire MemtoReg;
+    wire Branch;
     
     
     wire [WL - 1 : 0] pc_Out;
@@ -28,6 +29,8 @@ module top # ( parameter WL = 32 )
     wire [WL - 1 : 0] A;
     wire [WL - 1 : 0] B;
     wire signed [WL - 1 : 0] SImm = inst_reg.SImm;
+    wire [25 : 0] Jaddr = inst_reg.Jaddr;
+    wire [WL - 1 : 0] PCJump = { pc_Out[31 : 26], Jaddr };
     wire signed [WL - 1 : 0] ALUResult;
     wire [WL - 1 : 0] Adr;
     wire signed [WL - 1 : 0] ALU_reg_out;
@@ -36,6 +39,10 @@ module top # ( parameter WL = 32 )
     wire [WL - 1 : 0] SrcB;
     wire [4 : 0] A3;
     wire [WL - 1 : 0] WD3;
+    wire PCEn;
+    wire and_out;
+    wire zero;
+    wire [WL - 1 : 0] pc_In;
     
     
     
@@ -43,11 +50,17 @@ module top # ( parameter WL = 32 )
     control_unit cont_unit( .CLK(CLK), .RESET(RESET), .Op(inst_reg.opcode), .Funct(inst_reg.funct), .ALUSrcA(ALUSrcA),  // Control Unit
                    .ALUSrcB(ALUSrcB), .IorD(IorD), .ALUControl(ALUControl), .PCSrc(PCSrc), .IRWrite(IRWrite),           // Control Unit
                         .PCWrite(PCWrite), .RegWrite(RegWrite), .MemWrite(MemWrite), .RegDst(RegDst),                   // Control Unit
-                               .MemtoReg(MemtoReg) );                                                                   // Control Unit
+                               .MemtoReg(MemtoReg), .Branch(Branch) );                                                  // Control Unit
     // Control Unit
     
+    
+    // PC Gates
+    and_gate and_gate( .Branch(Branch), .zero(zero), .and_out(and_out) );                                    // PC Gates
+    or_gate or_gate( .and_out(and_out), .PCWrite(PCWrite), .PCEn(PCEn) );                          // PC Gates
+    // PC Gates
+    
     // program counter
-    pc pc( .CLK(CLK), .EN(PCWrite), .pc_In(ALUResult), .pc_Out(pc_Out) );                                // program counter
+    pc pc( .CLK(CLK), .EN(PCEn), .pc_In(pc_In), .pc_Out(pc_Out) );                                // program counter
     // program counter
     
     // program counter multiplexer
@@ -84,20 +97,24 @@ module top # ( parameter WL = 32 )
     // Register File register
     
     // ALUSrcA multiplexer
-    ALUSrcA_multiplexer ALUSrcA_multiplexer( .ALUSrcA(ALUSrcA), .PC(pc_Out), .A(A), .SrcA(SrcA) );         // ALUSrcA multiplexer
+    ALUSrcA_multiplexer ALUSrcA_multiplexer( .ALUSrcA(ALUSrcA), .PC(pc_Out), .A(A), .SrcA(SrcA) );              // ALUSrcA multiplexer
     // ALUSrcA multiplexer
     
     // ALUSrcB multiplexer
-    ALUSrcB_multiplexer ALUSrcB_multiplexer( .ALUSrcB(ALUSrcB), .B(B), .SignImm(SImm), .D(), .SrcB(SrcB) );  // ALUSrcB multiplexer
+    ALUSrcB_multiplexer ALUSrcB_multiplexer( .ALUSrcB(ALUSrcB), .B(B), .SignImm(SImm), .D(SImm), .SrcB(SrcB) );     // ALUSrcB multiplexer
     // ALUSrcB multiplexer
     
     // ALU
-    alu alu( .shamt(shamt), .A(SrcA), .B(SrcB), .ALU_Control(ALUControl), .ALU_Out(ALUResult) );                           // ALU
+    alu alu( .zero(zero), .shamt(shamt), .A(SrcA), .B(SrcB), .ALU_Control(ALUControl), .ALU_Out(ALUResult) );           // ALU
     // ALU
     
     // ALU register
-    alu_out_register alu_out_reg( .CLK(CLK), .ALU_reg_in(ALUResult), .ALU_reg_out(ALU_reg_out) );           // ALU register
+    alu_out_register alu_out_reg( .CLK(CLK), .ALU_reg_in(ALUResult), .ALU_reg_out(ALU_reg_out) );                           // ALU register
     // ALU register
+    
+    // PCSrc Mux
+    pcsrc_mux pcsrc_mux(.PCSrc(PCSrc), .ALUResult(ALUResult), .ALU_reg_out(ALU_reg_out), .PCJump(PCJump), .pc_In(pc_In) );  // PCSrc Mux
+    // PCSrc Mux
     
 endmodule
 

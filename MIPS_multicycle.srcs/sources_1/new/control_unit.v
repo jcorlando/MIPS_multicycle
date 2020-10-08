@@ -13,15 +13,16 @@ module control_unit
     output reg IRWrite,
     output reg MemWrite,
     output reg PCWrite,
-    output Branch,
+    output reg Branch,
     output reg RegWrite,
     output reg [2 : 0] ALUControl
 );
     localparam s0_fetch = 4'b0000, s1_decode = 4'b0001, s2_memadr = 4'b0010,
                  s3_memread = 4'b0011, s4_memwriteback = 4'b0100, s5_memwrite = 4'b0101,
-                  s6_execute = 4'b0110,   s7_aluwriteback = 4'b0111;
+                  s6_execute = 4'b0110,   s7_aluwriteback = 4'b0111, s9_addiexecute = 4'b1001,
+                      s10_addiwriteback = 4'b1010;
     
-    reg [2 : 0] current_state, next_state;
+    reg [3 : 0] current_state, next_state;
     
     initial current_state = s0_fetch;
     
@@ -46,6 +47,7 @@ module control_unit
             begin
                 if(Op == 6'b100011 || Op == 6'b101011) next_state = s2_memadr;
                 else if(Op == 6'b000000) next_state = s6_execute;
+                else if(Op == 6'b001000) next_state = s9_addiexecute;
                 else next_state = s0_fetch;
             end
             s2_memadr: // S2 
@@ -71,6 +73,14 @@ module control_unit
                 next_state = s7_aluwriteback;
             end
             s7_aluwriteback: // S7
+            begin
+                next_state = s0_fetch;
+            end
+            s9_addiexecute: // s9
+            begin
+                next_state = s10_addiwriteback;
+            end
+            s10_addiwriteback: // s10
             begin
                 next_state = s0_fetch;
             end
@@ -100,6 +110,9 @@ module control_unit
             end
             s1_decode:
             begin
+                ALUSrcA = 0;
+                ALUSrcB = 2'b11;
+                ALUControl = 3'b000;
                 MemtoReg = 0;
                 RegDst = 0;
                 IRWrite = 0;
@@ -159,6 +172,8 @@ module control_unit
                         top.shamt = top.inst_reg.shamt;
                         ALUControl = 3'b010;
                     end
+                    4: ALUControl = 3'b100;
+                    7: ALUControl = 3'b101;
                 endcase
                 ALUSrcB = 2'b00;
                 IRWrite = 0;
@@ -170,6 +185,27 @@ module control_unit
             begin
                 MemtoReg = 0;
                 RegDst = 1;
+                IRWrite = 0;
+                PCWrite = 0;
+                RegWrite = 1;
+                MemWrite = 0;
+            end
+            s9_addiexecute:
+            begin
+                MemtoReg = 0;
+                RegDst = 0;
+                ALUSrcA = 1;
+                ALUControl = 3'b000;
+                ALUSrcB = 2'b10;
+                IRWrite = 0;
+                PCWrite = 0;
+                RegWrite = 0;
+                MemWrite = 0;
+            end
+            s10_addiwriteback:
+            begin
+                MemtoReg = 0;
+                RegDst = 0;
                 IRWrite = 0;
                 PCWrite = 0;
                 RegWrite = 1;
